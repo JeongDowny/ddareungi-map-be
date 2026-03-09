@@ -5,27 +5,40 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { MailModule } from '../mail/mail.module';
 import { User } from '../user/entities/user.entity';
+import { UserStats } from '../user/entities/user-stats.entity';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtNaverStrategy } from './strategies/naver.strategy';
 import { JwtKakaoStrategy } from './strategies/kakao.strategy';
 import { JwtGoogleStrategy } from './strategies/google.strategy';
-
+import { CryptoService } from '../common/crypto.service';
 
 @Module({
   imports: [
     MailModule,
-    TypeOrmModule.forFeature([User]),
+    TypeOrmModule.forFeature([User, UserStats]),
     JwtModule.registerAsync({
-          imports: [ConfigModule],
-          inject: [ConfigService],
-          useFactory: (configService: ConfigService) => ({
-            secret: configService.get<string>('JWT_SECRET'), // 환경 변수에서 JWT 비밀 키 가져오기
-            signOptions: { expiresIn: configService.get<string>('JWT_EXPIRATION_TIME') }, // 환경 변수에서 만료 시간 가져오기
-          }),
-        }),
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => {
+        const secret =
+          configService.get<string>('JWT_SECRET') || 'default-secret';
+        const expiresIn =
+          configService.get<string>('JWT_EXPIRATION_TIME') || '3600s';
+        return {
+          secret,
+          signOptions: { expiresIn },
+        };
+      },
+    }),
   ],
-  controllers: [AuthController],  
-  providers: [AuthService, JwtNaverStrategy, JwtKakaoStrategy, JwtGoogleStrategy],
+  controllers: [AuthController],
+  providers: [
+    AuthService,
+    CryptoService,
+    JwtNaverStrategy,
+    JwtKakaoStrategy,
+    JwtGoogleStrategy,
+  ],
   exports: [AuthService],
 })
 export class AuthModule {}

@@ -1,4 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 
 @Entity('users')
 export class User {
@@ -6,35 +12,57 @@ export class User {
   userId: number;
 
   @Column({ type: 'varchar', length: 255, nullable: true, name: 'social_name' })
-  socialName: string;
+  socialName: string | null;
 
   @Column({ type: 'varchar', length: 255, nullable: true, name: 'social_uid' })
-  socialUid: string;
+  socialUid: string | null;
 
-  @Column({ type: 'varchar', length: 255, unique: true})
+  @Column({ type: 'varchar', length: 255, unique: true })
   email: string;
 
-  @Column({ type: 'varchar', length: 255, name: 'password_hash'})
-  passwordHash: string;
+  @Column({
+    type: 'varchar',
+    length: 255,
+    name: 'password_hash',
+    nullable: true,
+  })
+  passwordHash: string | null;
 
   @Column({ type: 'varchar', length: 100 })
   name: string;
 
-  @Column({ type: 'varchar', length: 10})
-  gender: string;
+  @Column({ type: 'varchar', length: 10, nullable: true })
+  gender: string | null;
 
-  @Column({ type: 'date', name: 'birth_date'})
-  birthDate: Date;
+  @Column({ type: 'varchar', length: 4, name: 'birth_year', nullable: true })
+  birthYear: string | null;
 
   @Column({ type: 'varchar', length: 255, nullable: true, name: 'address' })
-  address: string;
+  address: string | null;
 
-  @CreateDateColumn({ type: 'timestamptz', name: 'created_at', default: () => 'CURRENT_TIMESTAMP' })
+  @Column({ type: 'timestamptz', name: 'consented_at', nullable: true })
+  consentedAt: Date | null;
+
+  @Column({ type: 'boolean', name: 'required_agreed', default: false })
+  requiredAgreed: boolean;
+
+  @Column({ type: 'boolean', name: 'optional_agreed', default: false })
+  optionalAgreed: boolean;
+
+  @CreateDateColumn({
+    type: 'timestamptz',
+    name: 'created_at',
+    default: () => 'CURRENT_TIMESTAMP',
+  })
   createdAt: Date;
 
-  @UpdateDateColumn({ type: 'timestamptz', name: 'updated_at', default: () => 'CURRENT_TIMESTAMP' })
+  @UpdateDateColumn({
+    type: 'timestamptz',
+    name: 'updated_at',
+    default: () => 'CURRENT_TIMESTAMP',
+  })
   updatedAt: Date;
 
   @Column({ type: 'timestamptz', name: 'last_login', nullable: true })
-  lastLogin: Date;
+  lastLogin: Date | null;
 }

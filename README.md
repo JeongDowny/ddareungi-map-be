@@ -1,98 +1,70 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/b41b9529-d411-41db-a649-54c989320348" width="300" alt="따릉이맵 로고" />
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+<h1>🚲 따릉이맵 (Ddareungi Map)</h1>
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+  <p>
+    서울 공공자전거 따릉이 이용 시 발생하는 경로 탐색 불편 문제를 해결하기 위해 개발한 서비스입니다.
 
-## Description
+기존 따릉이 앱은 대여소 위치만 제공하고 대여소까지 이동 경로와 자전거 이동 경로를 함께 안내하지 않습니다.
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+따릉이맵은 이를 해결하기 위해
 
-## Project setup
+**도보 → 자전거 → 도보**
 
-```bash
-$ pnpm install
+이동을 하나의 경로로 제공하는 **통합 경로 탐색 서비스**입니다.<br/>
+
+  </p>
+</div>
+
+<br/>
+
+### 📱 Preview
+
+|                                                      대여소 지도                                                      |                                                       경로 안내                                                       |                                                      네비게이션                                                       |                                                      마이페이지                                                       |
+| :-------------------------------------------------------------------------------------------------------------------: | :-------------------------------------------------------------------------------------------------------------------: | :-------------------------------------------------------------------------------------------------------------------: | :-------------------------------------------------------------------------------------------------------------------: |
+| <img width="250" alt="image" src="https://github.com/user-attachments/assets/3365f08b-4d84-4fc2-8f90-8f74ffc7721b" /> | <img width="250" alt="image" src="https://github.com/user-attachments/assets/3c8b80ef-b89a-473a-bf84-c12fb129ba16" /> | <img width="250" alt="image" src="https://github.com/user-attachments/assets/03009264-0e76-4cef-88ba-0413274892f0" /> | <img width="250" alt="image" src="https://github.com/user-attachments/assets/3290fe53-3652-456e-8ce5-2cb6acb701e1" /> |
+
+<br/>
+
+## ✨ 주요 기능
+
+| 기능                 | 설명                                                       |
+| :------------------- | :--------------------------------------------------------- |
+| **🗺️ 대여소 지도**   | 현재 위치 기반 따릉이 대여소 조회, 잔여 자전거 실시간 확인 |
+| **📍 경로 안내**     | 도보와 자전거가 결합된 최적 경로 검색 및 음성 안내         |
+| **🔍 검색 자동완성** | Kakao Local API 기반의 빠르고 정확한 장소/주소 검색        |
+| **👤 마이페이지**    | 라이딩 기록 확인 및 앱 설정 관리                           |
+
+<br/>
+
+## 🛠 기술 스택
+
+| 분류                 | 기술                                                     |
+| :------------------- | :------------------------------------------------------- |
+| **Core**             | NestJS, TypeScript                                       |
+| **Routing Engine**   | GraphHopper                                              |
+| **Database**         | Supabase (PostgreSQL)                                    |
+| **Cache**            | Redis                                                    |
+| **Infrastructure**   | AWS EC2, AWS Route53                                     |
+| **Storage**          | AWS S3                                                   |
+| **Containerization** | Docker                                                   |
+| **Authentication**   | OAuth PKCE, JWT                                          |
+| **External APIs**    | Kakao Local API, Seoul Public Bike API, Google Cloud TTS |
+
+<br/>
+
+## 📂 프로젝트 구조
+
 ```
-
-## Compile and run the project
-
-```bash
-# development
-$ pnpm run start
-
-# watch mode
-$ pnpm run start:dev
-
-# production mode
-$ pnpm run start:prod
+src/
+├── 📁 auth/         # 인증 및 소셜 로그인
+├── 📁 common/       # 공통 응답, 로깅, 인터셉터
+├── 📁 location/     # 장소 검색 및 위치 조회
+├── 📁 mail/         # 이메일 발송
+├── 📁 navigation/   # 실시간 네비게이션
+├── 📁 routes/       # 경로 탐색 및 최적화
+├── 📁 stations/     # 따릉이 대여소 데이터 관리
+├── 📁 tts/          # 음성 안내 생성
+└── 📁 user/         # 사용자 및 통계 관리
 ```
-
-## Run tests
-
-```bash
-# unit tests
-$ pnpm run test
-
-# e2e tests
-$ pnpm run test:e2e
-
-# test coverage
-$ pnpm run test:cov
-```
-
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ pnpm install -g @nestjs/mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).

@@ -8,7 +8,8 @@ import { UserService } from './user.service';
 import { UserController } from './user.controller';
 import { UserStatsController } from './user-stats.controller';
 import { UserStatsService } from './services/user-stats.service';
-import { AuthModule } from '../auth/auth.module'; // 추가
+import { AuthModule } from '../auth/auth.module';
+import { WithdrawByEmailGuard } from './guards/withdraw-by-email.guard';
 
 @Module({
   imports: [
@@ -16,14 +17,20 @@ import { AuthModule } from '../auth/auth.module'; // 추가
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET'), // 환경 변수에서 JWT 비밀 키 가져오기
-        signOptions: { expiresIn: configService.get<string>('JWT_EXPIRATION_TIME') }, // 환경 변수에서 만료 시간 가져오기
-      }),
+      useFactory: (configService: ConfigService) => {
+        const secret =
+          configService.get<string>('JWT_SECRET') || 'default-secret';
+        const expiresIn =
+          configService.get<string>('JWT_EXPIRATION_TIME') || '3600s';
+        return {
+          secret,
+          signOptions: { expiresIn },
+        };
+      },
     }),
     AuthModule, // 추가
   ],
-  providers: [UserService, UserStatsService],
+  providers: [UserService, UserStatsService, WithdrawByEmailGuard],
   controllers: [UserController, UserStatsController],
   exports: [UserService, UserStatsService], // 필요 시 다른 모듈에서 사용 가능하도록 export
 })

@@ -1,9 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
-import { Strategy } from 'passport-google-oauth20';
+import { Strategy, type Profile } from 'passport-google-oauth20';
 import { ConfigService } from '@nestjs/config';
 import { AuthService } from '../auth.service';
 import axios from 'axios';
+
+type GooglePeopleApiResponse = {
+  genders?: Array<{ value?: string }>;
+  birthdays?: Array<{ date?: { year?: number; month?: number; day?: number } }>;
+};
 
 @Injectable()
 export class JwtGoogleStrategy extends PassportStrategy(Strategy, 'google') {
@@ -12,39 +17,60 @@ export class JwtGoogleStrategy extends PassportStrategy(Strategy, 'google') {
     private readonly authService: AuthService,
   ) {
     const options = {
-      clientID: configService.get('GOOGLE_CLIENT_ID'),
-      clientSecret: configService.get('GOOGLE_CLIENT_SECRET'),
-      callbackURL: configService.get('GOOGLE_CALLBACK_URL'),
-      scope: ['email', 'profile', 
-                'https://www.googleapis.com/auth/user.gender.read', 
-                'https://www.googleapis.com/auth/user.birthday.read', 
-                'https://www.googleapis.com/auth/user.phonenumbers.read'],
+      clientID: configService.getOrThrow<string>('GOOGLE_CLIENT_ID'),
+      clientSecret: configService.getOrThrow<string>('GOOGLE_CLIENT_SECRET'),
+      callbackURL: configService.getOrThrow<string>('GOOGLE_CALLBACK_URL'),
+      scope: [
+        'email',
+        'profile',
+        'https://www.googleapis.com/auth/user.gender.read',
+        'https://www.googleapis.com/auth/user.birthday.read',
+        'https://www.googleapis.com/auth/user.phonenumbers.read',
+      ],
     };
 
     super(options);
   }
 
-  async validate(accessToken: string, refreshToken: string, profile: any) {
-    const peopleApiUrl = 'https://people.googleapis.com/v1/people/me?personFields=birthdays,genders';
-    const response = await axios.get(peopleApiUrl, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    }); 
-    const additionalInfo = response.data;
+  async validate(accessToken: string, _refreshToken: string, profile: Profile) {
+    const peopleApiUrl =
+      'https://people.googleapis.com/v1/people/me?personFields=birthdays,genders';
+    // People API는 선택 정보(성별/생일)이므로 실패해도 로그인은 진행되어야 함
+    let additionalInfo: GooglePeopleApiResponse | undefined;
+    try {
+      const response = await axios.get<GooglePeopleApiResponse>(peopleApiUrl, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+      additionalInfo = response.data;
+    } catch {
+      additionalInfo = undefined;
+    }
 
     // Extract required fields
+    const displayName =
+      profile.displayName ??
+      [profile.name?.givenName, profile.name?.familyName]
+        .filter((v): v is string => typeof v === 'string' && v.length > 0)
+        .join(' ');
+
+    const genderValue = additionalInfo?.genders?.[0]?.value;
+    const gender =
+      genderValue === 'male' ? 'M' : genderValue === 'female' ? 'F' : 'U';
+
+    const date = additionalInfo?.birthdays?.[0]?.date;
+    const birthYear =
+      date && typeof date.year === 'number' ? String(date.year) : null;
+
     const googleProfile = {
       id: profile.id,
-      name: profile.displayName || `${profile.name.givenName} ${profile.name.familyName}`,
-      email: profile.emails?.[0]?.value || '',
-      gender: additionalInfo.genders?.[0]?.value === 'male' ? 'M' : 'W',
-      birthday: additionalInfo.birthdays?.[0]?.date
-        ? `${additionalInfo.birthdays[0].date.year}-${additionalInfo.birthdays[0].date.month}-${additionalInfo.birthdays[0].date.day}`
-        : 'unknown',
+      name: displayName || 'Google User',
+      email: profile.emails?.[0]?.value ?? '',
+      gender,
+      birthYear,
     };
 
-    console.log('Google Profile:', googleProfile);
     return await this.authService.handleGoogleLogin(googleProfile);
   }
 }

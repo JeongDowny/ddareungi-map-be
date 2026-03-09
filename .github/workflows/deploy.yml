@@ -1,0 +1,78 @@
+name: DDareungiMap BE CI/CD
+
+on:
+  push:
+    branches:
+      - dev # (1) 'dev' 브랜치 푸시 시 자동 실행
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest # (2) GitHub이 제공하는 가상 서버(Ubuntu)에서 실행
+
+    steps:
+      # 1. GitHub 리포지토리 코드를 가상 서버로 복사 (dev 브랜치 참조 명시)
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          # 현재 이벤트가 발생한 브랜치(dev)의 코드를 정확히 가져옴
+          ref: ${{ github.ref }}
+
+      # 2. pnpm 및 Node.js 환경 설정
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.11.0'
+          cache: 'pnpm'
+
+      # 3. 의존성 설치 및 빌드
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build
+        run: pnpm run build
+
+      # 4. 빌드 결과물(dist)과 실행 파일들을 EC2 서버로 전송 (버전 태그 수정)
+      - name: Transfer to EC2
+        uses: appleboy/scp-action@v1
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: 22
+          source: 'dist,package.json,pnpm-lock.yaml,public'
+          target: '/home/ubuntu/ddareungi-map-be'
+
+          # 🚨🚨🚨 오류 해결: 이 줄을 삭제하거나 주석 처리합니다. 🚨🚨🚨
+          # strip_components: 1
+
+      # 5. EC2 서버에 접속하여 앱 재시작 (NVM 로드 및 SSH 오류 해결)
+      - name: Restart PM2 on EC2
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: 22
+          script: |
+            # NVM 환경 로드 (npm, pnpm, pm2 명령어 인식)
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
+            cd /home/ubuntu/ddareungi-map-be
+
+            # 1. pnpm 글로벌 설치 확인 (최초 1회 실행됨)
+            if ! command -v pnpm &> /dev/null
+            then
+                echo "pnpm not found, installing globally..."
+                npm install -g pnpm
+            fi
+
+            # 2. 운영용 의존성 재설치 (버전 충돌 무시)
+            pnpm install --prod --frozen-lockfile --legacy-peer-deps
+
+            # 3. PM2 무중단 재배포 및 상태 저장
+            pm2 reload ddareungimap-api
+            pm2 save

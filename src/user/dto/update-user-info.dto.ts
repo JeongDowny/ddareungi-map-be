@@ -1,39 +1,81 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, IsOptional, IsIn, Matches } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsString,
+  IsOptional,
+  IsIn,
+  IsBoolean,
+  IsDateString,
+  Matches,
+} from 'class-validator';
 
 export class UpdateUserInfoDto {
   @ApiProperty({
     description: '사용자 이름',
-    example: '홍길동'
+    example: '홍길동',
   })
   @IsNotEmpty({ message: '이름은 필수입니다.' })
   @IsString({ message: '이름은 문자열이어야 합니다.' })
   name: string;
 
   @ApiProperty({
-    description: '생년월일 (YYYY-MM-DD 형식)',
-    example: '1990-01-01'
+    description: '출생연도 (YYYY 형식)',
+    example: '1990',
+    required: false,
   })
-  @IsNotEmpty({ message: '생년월일은 필수입니다.' })
-  @IsString({ message: '생년월일은 문자열이어야 합니다.' })
-  birthDate: string;
+  @IsOptional()
+  @IsString({ message: '출생연도는 문자열이어야 합니다.' })
+  @Matches(/^\d{4}$/, {
+    message: '출생연도는 YYYY 형식이어야 합니다.',
+  })
+  birthYear?: string | null;
 
   @ApiProperty({
     description: '성별 (M: 남성, F: 여성)',
     example: 'M',
-    enum: ['M', 'F']
+    enum: ['M', 'F', 'U'],
+    required: false,
   })
-  @IsNotEmpty({ message: '성별은 필수입니다.' })
+  @IsOptional()
   @IsString({ message: '성별은 문자열이어야 합니다.' })
-  @IsIn(['M', 'F'], { message: '성별은 M(남성) 또는 F(여성)이어야 합니다.' })
-  gender: string;
+  @IsIn(['M', 'F', 'U'], {
+    message: '성별은 M(남성) 또는 F(여성) 또는 U(미상)이어야 합니다.',
+  })
+  gender?: string | null;
 
   @ApiProperty({
     description: '주소',
     example: '서울특별시-강남구-역삼동',
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsString({ message: '주소는 문자열이어야 합니다.' })
   address?: string;
+
+  @ApiProperty({
+    description: '동의 일시',
+    example: '2024-01-15T09:30:00Z',
+    required: false,
+  })
+  @IsOptional()
+  @IsDateString()
+  consentedAt?: string;
+
+  @ApiProperty({
+    description: '필수 약관 동의 여부',
+    example: true,
+    required: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  requiredAgreed?: boolean;
+
+  @ApiProperty({
+    description: '선택 약관 동의 여부',
+    example: false,
+    required: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  optionalAgreed?: boolean;
 }

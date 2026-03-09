@@ -1,4 +1,14 @@
-import { IsString, IsEmail, IsOptional, IsNotEmpty, IsIn, IsDateString, Length } from 'class-validator';
+import {
+  IsString,
+  IsEmail,
+  IsOptional,
+  IsNotEmpty,
+  IsIn,
+  IsDateString,
+  Length,
+  IsBoolean,
+  Matches,
+} from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateUserDto {
@@ -22,16 +32,56 @@ export class CreateUserDto {
   @IsNotEmpty()
   name: string;
 
-  @ApiProperty({ description: '성별', enum: ['M', 'F'] })
+  @ApiProperty({ description: '성별', enum: ['M', 'F', 'U'], required: false })
+  @IsOptional()
   @IsString()
-  @IsIn(['M', 'F'])
-  gender: string;
+  @IsIn(['M', 'F', 'U'])
+  gender?: string | null;
 
-  @ApiProperty({ description: '생년월일', example: '1990-01-01' })
+  @ApiProperty({
+    description: '출생연도 (YYYY 형식)',
+    example: '1990',
+    required: false,
+  })
+  @IsOptional()
+  @Matches(/^\d{4}$/, {
+    message: '출생연도는 YYYY 형식이어야 합니다.',
+  })
+  birthYear?: string | null;
+
+  @ApiProperty({
+    description: '주소',
+    example: '서울특별시-강남구-역삼동',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  address?: string;
+
+  @ApiProperty({
+    description: '동의 시각',
+    example: '2024-01-01T00:00:00Z',
+    required: false,
+  })
+  @IsOptional()
   @IsDateString()
-  birthDate: string;
+  consentedAt?: string;
 
-  @ApiProperty({ description: '주소', example: '서울특별시-강남구-역삼동' })
-  @IsString()
-  address: string;
+  @ApiProperty({
+    description: '필수 약관 동의 여부',
+    example: true,
+    required: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  requiredAgreed?: boolean;
+
+  @ApiProperty({
+    description: '선택 약관 동의 여부',
+    example: false,
+    required: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  optionalAgreed?: boolean;
 }

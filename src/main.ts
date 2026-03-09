@@ -2,23 +2,77 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import helmet from 'helmet';
+import { ConfigService } from '@nestjs/config';
+import { createWinstonLogger } from './common/logger/winston.config';
+import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
+import { SentryInterceptor } from './common/interceptors/sentry.interceptor';
+import { ClsService } from 'nestjs-cls';
+import * as Sentry from '@sentry/nestjs';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  // ConfigService를 먼저 가져와서 환경 변수 확인
+  const tempApp = await NestFactory.createApplicationContext(AppModule, {
+    logger: false, // 임시로 로거 비활성화 (Winston 설정 전)
+  });
+  const configService = tempApp.get(ConfigService);
+  await tempApp.close();
 
-  app.use(helmet());
+  // Winston Logger 생성
+  const winstonLogger = createWinstonLogger(configService);
 
-  // CORS 설정을 환경변수에서 읽어오기
-  const corsOrigins = process.env.CORS_ORIGINS?.split(',') || [
-    'http://localhost:3000',
-  ];
+  // Sentry 초기화 (에러 모니터링 전용, production에서만)
+  const nodeEnv = configService.get<string>('NODE_ENV', 'local');
+  const sentryDsn = configService.get<string>('SENTRY_DSN');
+  if (nodeEnv === 'production' && sentryDsn) {
+    const tracesSampleRate = Number(
+      configService.get<string>('SENTRY_TRACES_SAMPLE_RATE', '0.1'),
+    );
+
+    Sentry.init({
+      dsn: sentryDsn,
+      environment: nodeEnv,
+      tracesSampleRate: Number.isFinite(tracesSampleRate)
+        ? tracesSampleRate
+        : 0.1,
+    });
+  }
+
+  // NestJS 앱 생성 (Winston Logger 사용)
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    logger: winstonLogger,
+  });
+
+  // Global Interceptor 등록 (요청/응답 로깅)
+  const clsService = app.get(ClsService);
+  app.useGlobalInterceptors(new SentryInterceptor(configService, clsService));
+  app.useGlobalInterceptors(new LoggingInterceptor(clsService));
+
+  // helmet 임시 비활성화 - Swagger 테스트용
+  // app.use(
+  //   helmet({
+  //     contentSecurityPolicy: {
+  //       directives: {
+  //         ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+  //         'script-src': ["'self'", "'unsafe-inline'"], // 인라인 스크립트 허용
+  //         'style-src': ["'self'", "'unsafe-inline'"], // 인라인 스타일 허용
+  //         'img-src': ["'self'", 'data:'], // 스웨거 UI 이미지 적용
+  //       },
+  //     },
+  //     crossOriginOpenerPolicy: false, // COOP 헤더 비활성화
+  //     crossOriginResourcePolicy: false, // CORP 헤더 비활성화
+  //   }),
+  // );
 
   app.enableCors({
-    origin: corsOrigins,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Trace-Id',
+      'X-Request-Id',
+    ],
   });
 
   // ValidationPipe
@@ -81,7 +135,17 @@ async function bootstrap() {
     })
     .build();
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api-docs', app, document);
+
+  // Swagger 설정 옵션 추가 - HTTP를 사용하도록 강제
+  SwaggerModule.setup('api-docs', app, document, {
+    swaggerOptions: {
+      persistAuthorization: true,
+      // 상대 경로를 사용하여 현재 프로토콜/호스트를 따르도록 설정
+      url: '/api-docs-json',
+    },
+    customSiteTitle: 'Ddareungi Map API',
+    customCss: '.swagger-ui .topbar { display: none }', // 상단바 제거 (선택사항)
+  });
 
   await app.listen(3000);
 }

@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { HttpModule } from '@nestjs/axios';
 import { RoutesController } from './routes.controller';
 import { RoutesService } from './routes.service';
 import { GraphHopperService } from './services/graphhopper.service';
@@ -10,10 +9,12 @@ import { StationRouteService } from './services/station-route.service';
 import { RouteUtilService } from './services/route-util.service';
 import { StationsModule } from '../stations/stations.module';
 
+import { RedisModule } from '@liaoliaots/nestjs-redis';
+
 @Module({
   imports: [
-    HttpModule,
     StationsModule, // StationQueryService를 사용하기 위해 추가
+    RedisModule,
   ],
   controllers: [RoutesController],
   providers: [
@@ -24,6 +25,11 @@ import { StationsModule } from '../stations/stations.module';
     RouteBuilderService,
     StationRouteService,
     RouteUtilService,
+  ],
+  exports: [
+    RoutesService, // NavigationModule에서 사용
+    GraphHopperService, // NavigationReturnService에서 사용
+    StationRouteService, // NavigationRerouteService에서 출발 대여소 재탐색에 사용
   ],
 })
 export class RoutesModule {}

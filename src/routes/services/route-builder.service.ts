@@ -12,16 +12,20 @@ import { GraphHopperService } from './graphhopper.service';
 import { GraphHopperPath } from '../interfaces/graphhopper.interface';
 
 /**
+ * 상수 정의
+ */
+const CATEGORY_PRIORITY = {
+  bike: 'bike_priority',
+  time: 'time',
+  distance: 'distance',
+} as const;
+
+/**
  * RouteBuilderService
- * - 다구간/왕복 경로 등 복합 경로 구성 전담
+ * 다구간 경로 및 복합 경로 구성을 담당하는 서비스
  */
 @Injectable()
 export class RouteBuilderService {
-  private static readonly CATEGORY_PRIORITY = {
-    bike: 'bike_priority',
-    time: 'time',
-    distance: 'distance',
-  } as const;
   private readonly logger = new Logger(RouteBuilderService.name);
 
   constructor(
@@ -29,8 +33,19 @@ export class RouteBuilderService {
     private readonly graphHopperService: GraphHopperService,
   ) {}
 
+  // ============================================================================
+  // Public API
+  // ============================================================================
+
   /**
    * 다구간 경로 구축 (도보 구간 포함)
+   * @param points 경유지 좌표 배열
+   * @param category 경로 카테고리 정보 (이름 및 우선순위)
+   * @param walkingToStart 출발지에서 시작 정류장까지 도보 경로
+   * @param walkingFromEnd 도착 정류장에서 목적지까지 도보 경로
+   * @param startStation 시작 정류장 정보
+   * @param endStation 도착 정류장 정보
+   * @returns 완성된 다구간 경로
    */
   async buildMultiLegRoute(
     points: CoordinateDto[],
@@ -47,7 +62,7 @@ export class RouteBuilderService {
     let totalDescent = 0;
     let totalBikeDistance = 0;
     let totalBikeRoadDistance = 0;
-    let maxGradient = 0; // 전체 경로의 최대 경사도
+    let maxGradient = 0;
 
     // 첫 번째 도보 구간 추가 (출발지 → 시작 대여소)
     if (walkingToStart) {
@@ -57,9 +72,23 @@ export class RouteBuilderService {
       );
       const walkingSegment =
         this.routeConverter.convertToRouteSegment(walkingToStart);
-      // 도보 세그먼트로 타입 변경
       walkingSegment.type = 'walking';
       walkingSegment.summary = walkingSummary;
+      // 출발 대여소 도착 안내로 치환 (세그먼트 종점은 대여소)
+      if (
+        walkingSegment.instructions &&
+        walkingSegment.instructions.length > 0
+      ) {
+        const last =
+          walkingSegment.instructions[walkingSegment.instructions.length - 1];
+        if (
+          last.sign === 4 ||
+          /Arrive at/i.test(last.text) ||
+          last.text.includes('도착')
+        ) {
+          last.text = 'Arrive at start station';
+        }
+      }
       segments.push(walkingSegment);
 
       totalDistance += walkingSummary.distance;
@@ -68,7 +97,7 @@ export class RouteBuilderService {
       totalDescent += walkingSummary.descent || 0;
     }
 
-    // 각 자전거 구간별로 경로 검색
+    // 각 자전거 구간별로 경로 검색 및 추가
     for (let i = 0; i < points.length - 1; i++) {
       const segmentStart = points[i];
       const segmentEnd = points[i + 1];
@@ -102,9 +131,26 @@ export class RouteBuilderService {
       );
       const segment = this.routeConverter.convertToRouteSegment(selectedRoute);
       segment.summary = bikeSummary;
+
+      // 자전거 구간 종점 도착 안내 구분
+      // - 마지막 구간(도착 대여소): end station
+      // - 중간 구간(경유지): waypoint
+      if (segment.instructions && segment.instructions.length > 0) {
+        const last = segment.instructions[segment.instructions.length - 1];
+        const looksLikeArrival =
+          last.sign === 4 ||
+          /Arrive at/i.test(last.text) ||
+          last.text.includes('도착');
+        if (looksLikeArrival) {
+          last.text =
+            i === points.length - 2
+              ? 'Arrive at end station'
+              : 'Arrive at waypoint';
+        }
+      }
       segments.push(segment);
 
-      // 총합 계산 (bikeSummary 사용)
+      // 총합 계산
       totalDistance += bikeSummary.distance;
       totalTime += bikeSummary.time;
       totalAscent += bikeSummary.ascent || 0;
@@ -131,7 +177,6 @@ export class RouteBuilderService {
       );
       const walkingSegment =
         this.routeConverter.convertToRouteSegment(walkingFromEnd);
-      // 도보 세그먼트로 타입 변경
       walkingSegment.type = 'walking';
       walkingSegment.summary = walkingSummary;
       segments.push(walkingSegment);
@@ -170,91 +215,28 @@ export class RouteBuilderService {
     };
   }
 
-  /**
-   * 왕복 경로 통합
-   */
-  /**
-   * 왕복 경로 통합
-   */
-  mergeRoundTripRoutes(
-    forwardRoute: RouteDto,
-    returnRoute: RouteDto,
-  ): RouteDto {
-    // 자전거 구간의 총 거리와 자전거 도로 거리 계산
-    const forwardBikeSegments = forwardRoute.segments.filter(
-      (s) => s.type === 'biking',
-    );
-    const returnBikeSegments = returnRoute.segments.filter(
-      (s) => s.type === 'biking',
-    );
+  // ============================================================================
+  // Private Methods
+  // ============================================================================
 
-    let totalBikeDistance = 0;
-    let totalBikeRoadDistance = 0;
-
-    // 전진 경로의 자전거 구간 계산
-    forwardBikeSegments.forEach((segment) => {
-      totalBikeDistance += segment.summary.distance;
-      if (segment.summary.bikeRoadRatio) {
-        totalBikeRoadDistance +=
-          segment.summary.distance * segment.summary.bikeRoadRatio;
-      }
-    });
-
-    // 복귀 경로의 자전거 구간 계산
-    returnBikeSegments.forEach((segment) => {
-      totalBikeDistance += segment.summary.distance;
-      if (segment.summary.bikeRoadRatio) {
-        totalBikeRoadDistance +=
-          segment.summary.distance * segment.summary.bikeRoadRatio;
-      }
-    });
-
-    // 전체 자전거 도로 비율 계산
-    const overallBikeRoadRatio =
-      totalBikeDistance > 0
-        ? Math.round((totalBikeRoadDistance / totalBikeDistance) * 100) / 100
-        : 0;
-
-    return {
-      routeCategory: forwardRoute.routeCategory,
-      summary: {
-        distance: Math.round(
-          forwardRoute.summary.distance + returnRoute.summary.distance,
-        ),
-        time: Math.round(forwardRoute.summary.time + returnRoute.summary.time),
-        ascent: Math.round(
-          forwardRoute.summary.ascent + returnRoute.summary.ascent,
-        ),
-        descent: Math.round(
-          forwardRoute.summary.descent + returnRoute.summary.descent,
-        ),
-        bikeRoadRatio: overallBikeRoadRatio,
-      },
-      bbox: this.mergeBoundingBoxes(forwardRoute.bbox, returnRoute.bbox),
-      startStation: forwardRoute.startStation,
-      endStation: returnRoute.endStation,
-      segments: [...forwardRoute.segments, ...returnRoute.segments],
-    };
-  }
-
-  /**
-   * 카테고리에 따른 최적 경로 선택
-   */
   /**
    * 카테고리 우선순위에 따라 경로 선택
+   * @param routes 경로 배열
+   * @param priority 우선순위 (bike_priority, time, distance)
+   * @returns 선택된 경로
    */
-  selectRouteByCategory(
+  private selectRouteByCategory(
     routes: GraphHopperPath[],
     priority: string,
   ): GraphHopperPath {
     switch (priority) {
-      case RouteBuilderService.CATEGORY_PRIORITY.bike: {
+      case CATEGORY_PRIORITY.bike: {
         const safeRoutes = routes.filter((r) => r.profile === 'safe_bike');
         return safeRoutes.sort((a, b) => a.time - b.time)[0] || routes[0];
       }
-      case RouteBuilderService.CATEGORY_PRIORITY.time:
+      case CATEGORY_PRIORITY.time:
         return routes.sort((a, b) => a.time - b.time)[0];
-      case RouteBuilderService.CATEGORY_PRIORITY.distance:
+      case CATEGORY_PRIORITY.distance:
         return routes.sort((a, b) => a.distance - b.distance)[0];
       default:
         return routes[0];
@@ -263,35 +245,16 @@ export class RouteBuilderService {
 
   /**
    * 세그먼트들의 경계 상자 계산
+   * @param segments 경로 세그먼트 배열
+   * @returns 전체 경계 상자
    */
-  /**
-   * 세그먼트들의 경계 상자 계산
-   */
-  calculateBoundingBox(segments: RouteSegmentDto[]): BoundingBoxDto {
+  private calculateBoundingBox(segments: RouteSegmentDto[]): BoundingBoxDto {
     const allBboxes = segments.map((s) => s.bbox);
     return {
       minLat: Math.min(...allBboxes.map((b) => b.minLat)),
       minLng: Math.min(...allBboxes.map((b) => b.minLng)),
       maxLat: Math.max(...allBboxes.map((b) => b.maxLat)),
       maxLng: Math.max(...allBboxes.map((b) => b.maxLng)),
-    };
-  }
-
-  /**
-   * 경계 상자 통합
-   */
-  /**
-   * 경계 상자 통합
-   */
-  mergeBoundingBoxes(
-    bbox1: BoundingBoxDto,
-    bbox2: BoundingBoxDto,
-  ): BoundingBoxDto {
-    return {
-      minLat: Math.min(bbox1.minLat, bbox2.minLat),
-      minLng: Math.min(bbox1.minLng, bbox2.minLng),
-      maxLat: Math.max(bbox1.maxLat, bbox2.maxLat),
-      maxLng: Math.max(bbox1.maxLng, bbox2.maxLng),
     };
   }
 }
