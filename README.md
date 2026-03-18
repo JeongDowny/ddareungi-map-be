@@ -19,7 +19,6 @@
 ## 배포 주소
 
 - 서비스 주소: (추가 예정)  
-- Swagger: https://ssumpick.com/api-docs  
 
 ---
 
@@ -170,7 +169,33 @@ SUPABASE_SECRET_KEY=
 
 ## API 문서
 
+Swagger 문서:
 - https://ddareungimap.com/api-docs
+
+이 프로젝트의 API는 Swagger를 통해 확인할 수 있습니다.  
+상세한 요청/응답 스펙, 파라미터, 인증 방식은 Swagger 문서를 기준으로 제공합니다.
+
+참고:
+- Swagger는 관리자용 Basic Auth가 설정된 경우에만 접근할 수 있습니다.
+- 실제 서비스에서 제공하는 주요 기능은 아래 도메인으로 구성되어 있습니다.
+
+### 주요 API 도메인
+
+- `stations`
+  - 따릉이 대여소 조회, 지도 반경 조회, 실시간 동기화 관련 API
+- `routes`
+  - 출발지/도착지 기반 경로 탐색, 순환형 경로 탐색 API
+- `navigation`
+  - 네비게이션 세션 시작, heartbeat, 복귀 경로 탐색, 재탐색, 세션 종료 API
+- `auth`
+  - 이메일 인증, 비밀번호 재설정, Google/Kakao/Naver OAuth 및 PKCE 로그인 API
+- `user`
+  - 회원가입, 로그인, 회원 정보 조회/수정, 비밀번호 변경, 탈퇴 API
+- `locations`
+  - 키워드 검색, 주소 검색, 좌표-주소 변환 API
+- `tts`
+  - 음성 안내 생성, 고정 메시지 TTS 생성, 캐시 조회 API
+
 
 ---
 
