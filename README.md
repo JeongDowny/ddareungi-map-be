@@ -104,7 +104,6 @@ KAKAO_CLIENT_ID=
 KAKAO_CLIENT_SECRET=
 KAKAO_CALLBACK_URL=
 KAKAO_PKCE_CALLBACK_URL=
-KAKAO_MAP_API=
 
 NAVER_CLIENT_ID=
 NAVER_CLIENT_SECRET=
@@ -117,6 +116,7 @@ MAIL_PASS=
 
 # External API
 SEOUL_OPEN_API_KEY=
+KAKAO_MAP_API=
 
 # Redis / Graphhopper
 REDIS_HOST=localhost
@@ -126,7 +126,7 @@ GRAPHHOPPER_URL=
 # TTS
 GOOGLE_APPLICATION_CREDENTIALS=
 
-# Supabase
+# Supabase storage
 SUPABASE_URL=
 SUPABASE_SECRET_KEY=
 ```
@@ -170,7 +170,7 @@ SUPABASE_SECRET_KEY=
 
 ## API 문서
 
-- https://ssumpick.com/api-docs
+- https://ddareungimap.com/api-docs
 
 ---
 
